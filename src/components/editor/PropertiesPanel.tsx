@@ -1,0 +1,437 @@
+'use client';
+
+import { useRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Upload } from 'lucide-react';
+import { useEditorStore } from '@/stores/editor-store';
+import { ANIMATION_PRESETS, EASING_OPTIONS } from '@/lib/animations';
+import type { AnimationType, EasingType, DeviceType, SceneElement } from '@/types/editor';
+
+function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="w-20 flex-shrink-0 text-xs text-muted-foreground">{label}</Label>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
+function NumberInput({ value, onChange, min, max, step = 1 }: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+}) {
+  return (
+    <Input
+      type="number"
+      value={Math.round(value)}
+      onChange={(e) => onChange(Number(e.target.value))}
+      min={min}
+      max={max}
+      step={step}
+      className="h-7 text-xs"
+    />
+  );
+}
+
+function PositionProps({ element }: { element: SceneElement }) {
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const u = (updates: Partial<SceneElement>) => updateElement(element.id, updates);
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Transform
+      </h4>
+      <div className="grid grid-cols-2 gap-2">
+        <PropertyRow label="X">
+          <NumberInput value={element.x} onChange={(x) => u({ x })} />
+        </PropertyRow>
+        <PropertyRow label="Y">
+          <NumberInput value={element.y} onChange={(y) => u({ y })} />
+        </PropertyRow>
+        <PropertyRow label="W">
+          <NumberInput value={element.width} onChange={(width) => u({ width })} min={10} />
+        </PropertyRow>
+        <PropertyRow label="H">
+          <NumberInput value={element.height} onChange={(height) => u({ height })} min={10} />
+        </PropertyRow>
+      </div>
+      <PropertyRow label="Rotation">
+        <NumberInput value={element.rotation} onChange={(rotation) => u({ rotation })} min={0} max={360} />
+      </PropertyRow>
+      <PropertyRow label="Opacity">
+        <Slider
+          value={[element.opacity * 100]}
+          onValueChange={(v) => u({ opacity: (typeof v === 'number' ? v : v[0]) / 100 })}
+          min={0}
+          max={100}
+          step={1}
+          className="flex-1"
+        />
+      </PropertyRow>
+    </div>
+  );
+}
+
+function ScreenshotProps({ element }: { element: SceneElement & { type: 'screenshot' } }) {
+  const updateElement = useEditorStore((s) => s.updateElement);
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Screenshot
+      </h4>
+      <PropertyRow label="Radius">
+        <NumberInput
+          value={element.borderRadius}
+          onChange={(borderRadius) => updateElement(element.id, { borderRadius })}
+          min={0}
+          max={100}
+        />
+      </PropertyRow>
+    </div>
+  );
+}
+
+function TextProps({ element }: { element: SceneElement & { type: 'text' } }) {
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const u = (updates: Partial<SceneElement>) => updateElement(element.id, updates);
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Text
+      </h4>
+      <PropertyRow label="Content">
+        <Input
+          value={element.content}
+          onChange={(e) => u({ content: e.target.value } as Partial<SceneElement>)}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+      <PropertyRow label="Size">
+        <NumberInput
+          value={element.fontSize}
+          onChange={(fontSize) => u({ fontSize } as Partial<SceneElement>)}
+          min={8}
+          max={200}
+        />
+      </PropertyRow>
+      <PropertyRow label="Weight">
+        <Select
+          value={String(element.fontWeight)}
+          onValueChange={(v) => v && u({ fontWeight: Number(v) } as Partial<SceneElement>)}
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="300">Light</SelectItem>
+            <SelectItem value="400">Regular</SelectItem>
+            <SelectItem value="500">Medium</SelectItem>
+            <SelectItem value="600">Semibold</SelectItem>
+            <SelectItem value="700">Bold</SelectItem>
+            <SelectItem value="900">Black</SelectItem>
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+      <PropertyRow label="Color">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={element.color}
+            onChange={(e) => u({ color: e.target.value } as Partial<SceneElement>)}
+            className="h-7 w-7 cursor-pointer rounded border border-border bg-transparent"
+          />
+          <Input
+            value={element.color}
+            onChange={(e) => u({ color: e.target.value } as Partial<SceneElement>)}
+            className="h-7 flex-1 text-xs"
+          />
+        </div>
+      </PropertyRow>
+      <PropertyRow label="Align">
+        <Select
+          value={element.textAlign}
+          onValueChange={(v) => v && u({ textAlign: v } as Partial<SceneElement>)}
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Left</SelectItem>
+            <SelectItem value="center">Center</SelectItem>
+            <SelectItem value="right">Right</SelectItem>
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+    </div>
+  );
+}
+
+function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device-frame' } }) {
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateElement(element.id, { screenshotSrc: reader.result as string } as Partial<SceneElement>);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Device Frame
+      </h4>
+      <PropertyRow label="Device">
+        <Select
+          value={element.deviceType}
+          onValueChange={(v) =>
+            v && updateElement(element.id, { deviceType: v as DeviceType } as Partial<SceneElement>)
+          }
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="iphone-15-pro">iPhone 15 Pro</SelectItem>
+            <SelectItem value="iphone-15">iPhone 15</SelectItem>
+            <SelectItem value="pixel-8">Pixel 8</SelectItem>
+            <SelectItem value="ipad-pro">iPad Pro</SelectItem>
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+      <PropertyRow label="Color">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={element.color}
+            onChange={(e) =>
+              updateElement(element.id, { color: e.target.value } as Partial<SceneElement>)
+            }
+            className="h-7 w-7 cursor-pointer rounded border border-border bg-transparent"
+          />
+          <Input
+            value={element.color}
+            onChange={(e) =>
+              updateElement(element.id, { color: e.target.value } as Partial<SceneElement>)
+            }
+            className="h-7 flex-1 text-xs"
+          />
+        </div>
+      </PropertyRow>
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleScreenshotUpload}
+          className="hidden"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-2 text-xs"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="h-3 w-3" />
+          {element.screenshotSrc ? 'Replace Screenshot' : 'Add Screenshot'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AnimationProps({ element }: { element: SceneElement }) {
+  const updateElement = useEditorStore((s) => s.updateElement);
+
+  const filteredPresets = ANIMATION_PRESETS.filter((p) => {
+    if (p.category === 'text' && element.type !== 'text') return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Animation
+      </h4>
+      <PropertyRow label="Type">
+        <Select
+          value={element.animation.type}
+          onValueChange={(v) =>
+            v && updateElement(element.id, {
+              animation: { ...element.animation, type: v as AnimationType },
+            })
+          }
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {filteredPresets.map((p) => (
+              <SelectItem key={p.type} value={p.type}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+      {element.animation.type !== 'none' && (
+        <>
+          <PropertyRow label="Duration">
+            <NumberInput
+              value={element.animation.duration}
+              onChange={(duration) =>
+                updateElement(element.id, {
+                  animation: { ...element.animation, duration },
+                })
+              }
+              min={1}
+              max={300}
+            />
+          </PropertyRow>
+          <PropertyRow label="Delay">
+            <NumberInput
+              value={element.animation.delay}
+              onChange={(delay) =>
+                updateElement(element.id, {
+                  animation: { ...element.animation, delay },
+                })
+              }
+              min={0}
+              max={300}
+            />
+          </PropertyRow>
+          <PropertyRow label="Easing">
+            <Select
+              value={element.animation.easing}
+              onValueChange={(v) =>
+                v && updateElement(element.id, {
+                  animation: { ...element.animation, easing: v as EasingType },
+                })
+              }
+            >
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EASING_OPTIONS.map((e) => (
+                  <SelectItem key={e.value} value={e.value}>
+                    {e.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PropertyRow>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SceneProps() {
+  const activeScene = useEditorStore((s) => s.getActiveScene());
+  const updateScene = useEditorStore((s) => s.updateScene);
+
+  if (!activeScene) return null;
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Scene
+      </h4>
+      <PropertyRow label="Name">
+        <Input
+          value={activeScene.name}
+          onChange={(e) => updateScene(activeScene.id, { name: e.target.value })}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+      <PropertyRow label="Background">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={activeScene.background}
+            onChange={(e) => updateScene(activeScene.id, { background: e.target.value })}
+            className="h-7 w-7 cursor-pointer rounded border border-border bg-transparent"
+          />
+          <Input
+            value={activeScene.background}
+            onChange={(e) => updateScene(activeScene.id, { background: e.target.value })}
+            className="h-7 flex-1 text-xs"
+          />
+        </div>
+      </PropertyRow>
+      <PropertyRow label="Duration">
+        <NumberInput
+          value={activeScene.duration}
+          onChange={(duration) => updateScene(activeScene.id, { duration })}
+          min={30}
+          max={900}
+        />
+      </PropertyRow>
+    </div>
+  );
+}
+
+export function PropertiesPanel() {
+  const selectedElement = useEditorStore((s) => s.getSelectedElement());
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-10 items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Properties
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-4 p-3">
+          {selectedElement ? (
+            <>
+              <PositionProps element={selectedElement} />
+              <Separator />
+              {selectedElement.type === 'screenshot' && (
+                <ScreenshotProps element={selectedElement} />
+              )}
+              {selectedElement.type === 'text' && (
+                <TextProps element={selectedElement} />
+              )}
+              {selectedElement.type === 'device-frame' && (
+                <DeviceFrameProps element={selectedElement} />
+              )}
+              <Separator />
+              <AnimationProps element={selectedElement} />
+            </>
+          ) : (
+            <>
+              <SceneProps />
+              <Separator />
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                Select an element to edit its properties
+              </p>
+            </>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
