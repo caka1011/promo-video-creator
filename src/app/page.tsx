@@ -14,7 +14,7 @@ export default function DashboardPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Film className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-bold">PromoVid</h1>
+            <h1 className="text-lg font-bold">AppReel</h1>
           </div>
           <NewProjectDialog />
         </div>

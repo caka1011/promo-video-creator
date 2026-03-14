@@ -137,7 +137,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   loadProjects: () => {
     if (typeof window === 'undefined') return;
-    const raw = localStorage.getItem('promovid-projects');
+    const raw = localStorage.getItem('appreel-projects');
     if (raw) {
       try {
         set({ projects: JSON.parse(raw) });
@@ -160,7 +160,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     set({ project: updated, projects: newProjects });
     if (typeof window !== 'undefined') {
-      localStorage.setItem('promovid-projects', JSON.stringify(newProjects));
+      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
     }
   },
 
@@ -178,7 +178,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newProjects = [...projects, project];
     set({ projects: newProjects });
     if (typeof window !== 'undefined') {
-      localStorage.setItem('promovid-projects', JSON.stringify(newProjects));
+      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
     }
     return project.id;
   },
@@ -188,7 +188,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newProjects = projects.filter((p) => p.id !== id);
     set({ projects: newProjects });
     if (typeof window !== 'undefined') {
-      localStorage.setItem('promovid-projects', JSON.stringify(newProjects));
+      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
     }
   },
 

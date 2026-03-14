@@ -90,7 +90,7 @@ export function ExportDialog() {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
-        downloadBlob(blob, `${project.name || 'promo-video'}.webm`);
+        downloadBlob(blob, `${project.name || 'appreel-video'}.webm`);
         setStatus('done');
         setProgress(1);
       };

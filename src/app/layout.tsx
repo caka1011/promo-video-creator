@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PromoVid - App Store Video Creator",
+  title: "AppReel - App Store Video Creator",
   description: "Create stunning promotional videos for the App Store and Google Play",
 };
 

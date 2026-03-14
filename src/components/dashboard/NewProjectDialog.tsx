@@ -54,7 +54,7 @@ export function NewProjectDialog() {
       };
       const newProjects = [...projects, project];
       if (typeof window !== 'undefined') {
-        localStorage.setItem('promovid-projects', JSON.stringify(newProjects));
+        localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
       }
       useEditorStore.setState({ projects: newProjects });
       setOpen(false);
