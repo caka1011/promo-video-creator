@@ -1,6 +1,6 @@
 'use client';
 
-import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, Audio } from 'remotion';
 import { SceneComposition } from './Scene';
 import type { Project, TransitionType } from '@/types/editor';
 
@@ -96,6 +96,64 @@ function TransitionOverlay({
         />
       );
     }
+    case 'blur': {
+      const blurAmount = interpolate(frame, [0, transFrames / 2, transFrames], [0, 20, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      const opacity = interpolate(frame, [0, transFrames / 2, transFrames], [0, 0.5, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      return (
+        <AbsoluteFill
+          style={{
+            backgroundColor: `rgba(0,0,0,${opacity})`,
+            filter: `blur(${blurAmount}px)`,
+            zIndex: 100,
+          }}
+        />
+      );
+    }
+    case 'zoom-blur': {
+      const scale = interpolate(frame, [0, transFrames], [1, 3], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      const blurAmount = interpolate(frame, [0, transFrames], [0, 20], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      const opacity = interpolate(frame, [0, transFrames], [1, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      return (
+        <AbsoluteFill
+          style={{
+            backgroundColor: '#000',
+            transform: `scale(${scale})`,
+            filter: `blur(${blurAmount}px)`,
+            opacity,
+            zIndex: 100,
+          }}
+        />
+      );
+    }
+    case 'cross-dissolve': {
+      const opacity = interpolate(frame, [0, transFrames], [0.8, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      return (
+        <AbsoluteFill
+          style={{
+            backgroundColor: `rgba(255,255,255,${opacity})`,
+            zIndex: 100,
+          }}
+        />
+      );
+    }
     default:
       return null;
   }
@@ -106,6 +164,12 @@ export function PromoVideo({ project }: { project: Project }) {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
+      {project.audioSrc && (
+        <Audio
+          src={project.audioSrc}
+          volume={project.audioVolume ?? 1}
+        />
+      )}
       {project.scenes.map((scene, i) => {
         const start = frameOffset;
         frameOffset += scene.duration;

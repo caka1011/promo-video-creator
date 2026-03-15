@@ -184,6 +184,16 @@ function TextProps({ element }: { element: SceneElement & { type: 'text' } }) {
   );
 }
 
+const PERSPECTIVE_PRESETS = [
+  { name: 'Flat', x: 0, y: 0 },
+  { name: 'Left', x: 0, y: -20 },
+  { name: 'Right', x: 0, y: 20 },
+  { name: 'Tilt Fwd', x: 15, y: 0 },
+  { name: 'Tilt Back', x: -15, y: 0 },
+  { name: 'Drama L', x: 10, y: -30 },
+  { name: 'Drama R', x: 10, y: 30 },
+];
+
 function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device-frame' } }) {
   const updateElement = useEditorStore((s) => s.updateElement);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -241,6 +251,57 @@ function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device
           />
         </div>
       </PropertyRow>
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-3">
+        3D Perspective
+      </h4>
+      <PropertyRow label="Rotate X">
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[element.perspectiveX ?? 0]}
+            onValueChange={(v) =>
+              updateElement(element.id, { perspectiveX: typeof v === 'number' ? v : v[0] } as Partial<SceneElement>)
+            }
+            min={-45}
+            max={45}
+            step={1}
+            className="flex-1"
+          />
+          <span className="w-8 text-right text-[10px] text-muted-foreground">{element.perspectiveX ?? 0}°</span>
+        </div>
+      </PropertyRow>
+      <PropertyRow label="Rotate Y">
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[element.perspectiveY ?? 0]}
+            onValueChange={(v) =>
+              updateElement(element.id, { perspectiveY: typeof v === 'number' ? v : v[0] } as Partial<SceneElement>)
+            }
+            min={-45}
+            max={45}
+            step={1}
+            className="flex-1"
+          />
+          <span className="w-8 text-right text-[10px] text-muted-foreground">{element.perspectiveY ?? 0}°</span>
+        </div>
+      </PropertyRow>
+      <div className="flex flex-wrap gap-1">
+        {PERSPECTIVE_PRESETS.map((preset) => (
+          <Button
+            key={preset.name}
+            variant="outline"
+            size="sm"
+            className="h-6 text-[10px] px-2"
+            onClick={() =>
+              updateElement(element.id, {
+                perspectiveX: preset.x,
+                perspectiveY: preset.y,
+              } as Partial<SceneElement>)
+            }
+          >
+            {preset.name}
+          </Button>
+        ))}
+      </div>
       <div>
         <input
           ref={fileInputRef}
@@ -395,6 +456,43 @@ function SceneProps() {
   );
 }
 
+function AudioProps() {
+  const project = useEditorStore((s) => s.project);
+  const setAudioVolume = useEditorStore((s) => s.setAudioVolume);
+  const saveProject = useEditorStore((s) => s.saveProject);
+
+  if (!project?.audioSrc) return null;
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Background Audio
+      </h4>
+      <p className="text-[10px] text-muted-foreground truncate">
+        {project.audioFileName}
+      </p>
+      <PropertyRow label="Volume">
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[(project.audioVolume ?? 1) * 100]}
+            onValueChange={(v) => {
+              setAudioVolume((typeof v === 'number' ? v : v[0]) / 100);
+            }}
+            onPointerUp={() => saveProject()}
+            min={0}
+            max={100}
+            step={1}
+            className="flex-1"
+          />
+          <span className="w-8 text-right text-[10px] text-muted-foreground">
+            {Math.round((project.audioVolume ?? 1) * 100)}%
+          </span>
+        </div>
+      </PropertyRow>
+    </div>
+  );
+}
+
 export function PropertiesPanel() {
   const selectedElement = useEditorStore((s) => s.getSelectedElement());
 
@@ -424,6 +522,8 @@ export function PropertiesPanel() {
           ) : (
             <>
               <SceneProps />
+              <Separator />
+              <AudioProps />
               <Separator />
               <p className="py-4 text-center text-xs text-muted-foreground">
                 Select an element to edit its properties

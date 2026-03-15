@@ -4,10 +4,12 @@ import type {
   Project,
   Scene,
   SceneElement,
+  DeviceFrameElement,
   Animation,
   ProjectSettings,
   RESOLUTION_PRESETS,
 } from '@/types/editor';
+import { LAYOUT_PRESETS } from '@/lib/layout-presets';
 
 const DEFAULT_ANIMATION: Animation = {
   type: 'none',
@@ -78,6 +80,14 @@ interface EditorState {
   selectElement: (id: string | null) => void;
   reorderElements: (fromIndex: number, toIndex: number) => void;
   duplicateElement: (id: string) => void;
+
+  // Layout actions
+  applyLayoutPreset: (presetId: string) => void;
+
+  // Audio actions
+  setAudio: (src: string, fileName: string) => void;
+  removeAudio: () => void;
+  setAudioVolume: (volume: number) => void;
 
   // Canvas actions
   setZoom: (zoom: number) => void;
@@ -328,6 +338,117 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       y: element.y + 20,
     };
     get().addElement(newElement as SceneElement);
+  },
+
+  // Layout actions
+  applyLayoutPreset: (presetId) => {
+    const { project, activeSceneId } = get();
+    if (!project || !activeSceneId) return;
+
+    const preset = LAYOUT_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+
+    get().pushHistory();
+
+    const scene = project.scenes.find((s) => s.id === activeSceneId);
+    if (!scene) return;
+
+    const canvasW = project.settings.resolution.width;
+    const canvasH = project.settings.resolution.height;
+
+    // Find existing device frames
+    const deviceElements = scene.elements.filter(
+      (e): e is DeviceFrameElement => e.type === 'device-frame'
+    );
+
+    const elementsToUpdate = [...deviceElements];
+    const newElements: SceneElement[] = [];
+
+    // Create new device frames if needed
+    while (elementsToUpdate.length < preset.deviceCount) {
+      const newDevice: DeviceFrameElement = {
+        id: uuidv4(),
+        type: 'device-frame',
+        name: `Device ${elementsToUpdate.length + 1}`,
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 650,
+        rotation: 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+        deviceType: 'iphone-15-pro',
+        color: '#1a1a2e',
+        screenshotSrc: '',
+        perspectiveX: 0,
+        perspectiveY: 0,
+        animation: { type: 'none', duration: 30, delay: 0, easing: 'ease-out' },
+      };
+      elementsToUpdate.push(newDevice);
+      newElements.push(newDevice);
+    }
+
+    // Apply preset positions
+    const updatedDeviceIds = new Set<string>();
+    elementsToUpdate.slice(0, preset.deviceCount).forEach((device, i) => {
+      const pos = preset.positions[i];
+      const scaledWidth = 320 * pos.scale;
+      const scaledHeight = 650 * pos.scale;
+      device.x = (pos.xPercent / 100) * canvasW - scaledWidth / 2;
+      device.y = (pos.yPercent / 100) * canvasH - scaledHeight / 2;
+      device.width = scaledWidth;
+      device.height = scaledHeight;
+      device.rotation = pos.rotation;
+      device.perspectiveX = pos.perspectiveX;
+      device.perspectiveY = pos.perspectiveY;
+      updatedDeviceIds.add(device.id);
+    });
+
+    // Build new elements array
+    const newSceneElements = scene.elements.map((e) => {
+      if (updatedDeviceIds.has(e.id)) {
+        return elementsToUpdate.find((d) => d.id === e.id)!;
+      }
+      return e;
+    });
+    newSceneElements.push(...newElements);
+
+    const newScenes = project.scenes.map((s) =>
+      s.id === activeSceneId ? { ...s, elements: newSceneElements } : s
+    );
+    set({ project: { ...project, scenes: newScenes } });
+    get().saveProject();
+  },
+
+  // Audio actions
+  setAudio: (audioSrc, audioFileName) => {
+    const { project } = get();
+    if (!project) return;
+    set({
+      project: { ...project, audioSrc, audioFileName, audioVolume: project.audioVolume ?? 1 },
+    });
+    get().saveProject();
+  },
+
+  removeAudio: () => {
+    const { project } = get();
+    if (!project) return;
+    set({
+      project: {
+        ...project,
+        audioSrc: undefined,
+        audioFileName: undefined,
+        audioVolume: undefined,
+      },
+    });
+    get().saveProject();
+  },
+
+  setAudioVolume: (audioVolume) => {
+    const { project } = get();
+    if (!project) return;
+    set({ project: { ...project, audioVolume } });
   },
 
   // Canvas actions

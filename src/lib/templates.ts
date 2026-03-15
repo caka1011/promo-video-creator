@@ -96,6 +96,8 @@ export const TEMPLATES: Template[] = [
             deviceType: 'iphone-15-pro',
             color: '#1a1a2e',
             screenshotSrc: '',
+            perspectiveX: 0,
+            perspectiveY: 0,
             animation: { type: 'slide-up', duration: 25, delay: 5, easing: 'spring' },
           },
           {
@@ -215,6 +217,8 @@ export const TEMPLATES: Template[] = [
             deviceType: 'iphone-15-pro',
             color: '#0f0f23',
             screenshotSrc: '',
+            perspectiveX: 0,
+            perspectiveY: 0,
             animation: { type: 'zoom-in', duration: 25, delay: 5, easing: 'spring' },
           },
         ],
@@ -318,6 +322,8 @@ export const TEMPLATES: Template[] = [
             deviceType: 'iphone-15-pro',
             color: '#1e293b',
             screenshotSrc: '',
+            perspectiveX: 0,
+            perspectiveY: 0,
             animation: { type: 'slide-right', duration: 25, delay: 0, easing: 'spring' },
           },
           {

@@ -16,13 +16,22 @@ import {
   Pause,
   Eye,
   Save,
+  LayoutGrid,
+  Music,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useEditorStore } from '@/stores/editor-store';
 import { v4 as uuidv4 } from 'uuid';
 import type { ScreenshotElement, TextElement, DeviceFrameElement } from '@/types/editor';
+import { LAYOUT_PRESETS } from '@/lib/layout-presets';
 import { ExportDialog } from './ExportDialog';
 
 function ToolbarButton({
@@ -52,6 +61,7 @@ function ToolbarButton({
 export function Toolbar() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const project = useEditorStore((s) => s.project);
   const zoom = useEditorStore((s) => s.zoom);
@@ -65,6 +75,9 @@ export function Toolbar() {
   const previewMode = useEditorStore((s) => s.previewMode);
   const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   const saveProject = useEditorStore((s) => s.saveProject);
+  const applyLayoutPreset = useEditorStore((s) => s.applyLayoutPreset);
+  const setAudio = useEditorStore((s) => s.setAudio);
+  const removeAudio = useEditorStore((s) => s.removeAudio);
 
   const handleAddScreenshot = () => {
     fileInputRef.current?.click();
@@ -148,9 +161,26 @@ export function Toolbar() {
       deviceType: 'iphone-15-pro',
       color: '#1a1a2e',
       screenshotSrc: '',
+      perspectiveX: 0,
+      perspectiveY: 0,
       animation: { type: 'none', duration: 30, delay: 0, easing: 'ease-out' },
     };
     addElement(element);
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Audio file must be under 3MB due to browser storage limits.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAudio(reader.result as string, file.name);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   return (
@@ -173,6 +203,14 @@ export function Toolbar() {
         className="hidden"
       />
 
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/mp3,audio/wav,audio/ogg,audio/mpeg"
+        onChange={handleAudioUpload}
+        className="hidden"
+      />
+
       <ToolbarButton tooltip="Add Screenshot" onClick={handleAddScreenshot}>
         <Image className="h-4 w-4" />
       </ToolbarButton>
@@ -181,6 +219,48 @@ export function Toolbar() {
       </ToolbarButton>
       <ToolbarButton tooltip="Add Device Frame" onClick={handleAddDevice}>
         <Smartphone className="h-4 w-4" />
+      </ToolbarButton>
+
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon" className="h-8 w-8" />}
+              />
+            }
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </TooltipTrigger>
+          <TooltipContent>Layout Presets</TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent>
+          {LAYOUT_PRESETS.map((preset) => (
+            <DropdownMenuItem
+              key={preset.id}
+              onClick={() => applyLayoutPreset(preset.id)}
+            >
+              <span className="text-xs">{preset.name}</span>
+              <span className="ml-2 text-[10px] text-muted-foreground">
+                {preset.deviceCount} device{preset.deviceCount > 1 ? 's' : ''}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ToolbarButton
+        tooltip={project?.audioSrc ? `Audio: ${project.audioFileName}` : 'Add Background Music'}
+        onClick={() => {
+          if (project?.audioSrc) {
+            if (confirm('Remove audio?')) removeAudio();
+          } else {
+            audioInputRef.current?.click();
+          }
+        }}
+        variant={project?.audioSrc ? 'default' : 'ghost'}
+      >
+        <Music className="h-4 w-4" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6" />

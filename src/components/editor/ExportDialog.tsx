@@ -54,31 +54,59 @@ export function ExportDialog() {
     setProgress(0);
 
     try {
-      // Find the canvas inside the Remotion Player
       const playerEl = playerContainerRef.current;
       const videoEl = playerEl.querySelector('video');
       const canvasEl = playerEl.querySelector('canvas');
-
-      // Use a simpler approach: render to a hidden canvas via the Remotion Player
-      // We'll use the MediaRecorder on the player's rendered output
       const targetEl = canvasEl || videoEl;
 
       if (!targetEl) {
-        // Fallback: create a recording from the player's DOM
         setStatus('error');
         return;
       }
 
-      const stream =
+      const videoStream =
         targetEl instanceof HTMLCanvasElement
           ? targetEl.captureStream(Number(fps))
           : (targetEl as HTMLVideoElement & { captureStream(): MediaStream }).captureStream();
 
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9'
-        : 'video/webm';
+      let combinedStream: MediaStream;
+      let audioSource: AudioBufferSourceNode | null = null;
+      let audioContext: AudioContext | null = null;
 
-      const mediaRecorder = new MediaRecorder(stream, {
+      if (project.audioSrc) {
+        // Decode audio and create an audio stream
+        audioContext = new AudioContext();
+        const response = await fetch(project.audioSrc);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        const destination = audioContext.createMediaStreamDestination();
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = project.audioVolume ?? 1;
+
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(gainNode);
+        gainNode.connect(destination);
+        audioSource.start(0);
+
+        // Combine video + audio tracks
+        const videoTrack = videoStream.getVideoTracks()[0];
+        const audioTrack = destination.stream.getAudioTracks()[0];
+        combinedStream = new MediaStream([videoTrack, audioTrack]);
+      } else {
+        combinedStream = videoStream;
+      }
+
+      const mimeType = project.audioSrc
+        ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+            ? 'video/webm;codecs=vp9,opus'
+            : 'video/webm')
+        : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+            ? 'video/webm;codecs=vp9'
+            : 'video/webm');
+
+      const mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType,
         videoBitsPerSecond: Math.floor((quality / 100) * 10_000_000),
       });
@@ -93,11 +121,13 @@ export function ExportDialog() {
         downloadBlob(blob, `${project.name || 'appreel-video'}.webm`);
         setStatus('done');
         setProgress(1);
+        // Cleanup audio
+        if (audioSource) try { audioSource.stop(); } catch {}
+        if (audioContext) try { audioContext.close(); } catch {}
       };
 
       mediaRecorder.start();
 
-      // Simulate playback progress
       const durationMs = (totalFrames / Number(fps)) * 1000;
       const startTime = Date.now();
       const progressInterval = setInterval(() => {

@@ -17,7 +17,7 @@ export type AnimationType =
 
 export type EasingType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'spring';
 
-export type TransitionType = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'wipe' | 'zoom';
+export type TransitionType = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'wipe' | 'zoom' | 'blur' | 'zoom-blur' | 'cross-dissolve';
 
 export interface Animation {
   type: AnimationType;
@@ -66,6 +66,8 @@ export interface DeviceFrameElement extends BaseElement {
   deviceType: DeviceType;
   color: string;
   screenshotSrc: string; // screenshot inside the device
+  perspectiveX: number; // rotateX in degrees, range -45 to 45
+  perspectiveY: number; // rotateY in degrees, range -45 to 45
 }
 
 export type SceneElement = ScreenshotElement | TextElement | DeviceFrameElement;
@@ -114,6 +116,9 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   thumbnail?: string;
+  audioSrc?: string; // base64 data URL of audio file
+  audioVolume?: number; // 0 to 1, default 1
+  audioFileName?: string; // display name for the UI
 }
 
 export type ExportStatus = 'idle' | 'recording' | 'processing' | 'done' | 'error';

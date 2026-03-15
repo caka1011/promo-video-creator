@@ -7,6 +7,7 @@ import {
   Play,
   Pause,
   SkipBack,
+  Music,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -206,6 +207,19 @@ export function Timeline() {
             <Plus className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
+
+        {/* Audio indicator */}
+        {project.audioSrc && (
+          <div className="mt-2 flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1">
+            <Music className="h-3 w-3 flex-shrink-0 text-amber-400" />
+            <span className="text-[10px] text-muted-foreground truncate flex-1">
+              {project.audioFileName ?? 'Background Music'}
+            </span>
+            <div className="h-1 w-24 rounded-full bg-amber-400/30">
+              <div className="h-full rounded-full bg-amber-400/60" style={{ width: '100%' }} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

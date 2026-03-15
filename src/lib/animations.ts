@@ -38,4 +38,7 @@ export const TRANSITION_OPTIONS = [
   { value: 'slide-right', label: 'Slide Right' },
   { value: 'wipe', label: 'Wipe' },
   { value: 'zoom', label: 'Zoom' },
+  { value: 'blur', label: 'Blur' },
+  { value: 'zoom-blur', label: 'Zoom + Blur' },
+  { value: 'cross-dissolve', label: 'Cross Dissolve' },
 ] as const;

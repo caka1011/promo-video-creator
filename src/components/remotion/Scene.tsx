@@ -46,6 +46,9 @@ function DeviceFrameRenderer({
   sceneStartFrame: number;
 }) {
   const animStyle = useAnimationStyle(element.animation, sceneStartFrame);
+  const perspX = element.perspectiveX ?? 0;
+  const perspY = element.perspectiveY ?? 0;
+  const has3D = perspX !== 0 || perspY !== 0;
 
   return (
     <div
@@ -55,55 +58,65 @@ function DeviceFrameRenderer({
         top: element.y,
         width: element.width,
         height: element.height,
-        transform: `rotate(${element.rotation}deg)`,
+        perspective: has3D ? 1000 : undefined,
+        transformStyle: has3D ? 'preserve-3d' as const : undefined,
         ...animStyle,
       }}
     >
-      {/* Device body */}
       <div
         style={{
           width: '100%',
           height: '100%',
-          backgroundColor: element.color,
-          borderRadius: 40,
-          border: '2px solid rgba(255,255,255,0.1)',
-          position: 'relative',
-          overflow: 'hidden',
+          transform: `rotate(${element.rotation}deg) rotateX(${perspX}deg) rotateY(${perspY}deg)`,
+          transformStyle: has3D ? 'preserve-3d' as const : undefined,
         }}
       >
-        {/* Screen */}
+        {/* Device body */}
         <div
           style={{
-            position: 'absolute',
-            left: 15,
-            top: 15,
-            right: 15,
-            bottom: 15,
-            backgroundColor: '#000',
-            borderRadius: 30,
+            width: '100%',
+            height: '100%',
+            backgroundColor: element.color,
+            borderRadius: 40,
+            border: '2px solid rgba(255,255,255,0.1)',
+            position: 'relative',
             overflow: 'hidden',
           }}
         >
-          {element.screenshotSrc && (
-            <Img
-              src={element.screenshotSrc}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          )}
+          {/* Screen */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 15,
+              top: 15,
+              right: 15,
+              bottom: 15,
+              backgroundColor: '#000',
+              borderRadius: 30,
+              overflow: 'hidden',
+            }}
+          >
+            {element.screenshotSrc && (
+              <Img
+                src={element.screenshotSrc}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
+          </div>
+          {/* Dynamic island */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 22,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 100,
+              height: 28,
+              backgroundColor: '#111',
+              borderRadius: 14,
+            }}
+          />
         </div>
-        {/* Dynamic island */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 22,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 100,
-            height: 28,
-            backgroundColor: '#111',
-            borderRadius: 14,
-          }}
-        />
       </div>
     </div>
   );

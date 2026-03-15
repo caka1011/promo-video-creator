@@ -181,6 +181,8 @@ function DeviceFrameNode({ element, isSelected, onSelect }: {
         height={element.height}
         rotation={element.rotation}
         opacity={element.opacity}
+        skewX={((element.perspectiveY ?? 0)) * 0.3}
+        skewY={((element.perspectiveX ?? 0)) * -0.15}
         draggable={!element.locked}
         onClick={onSelect}
         onTap={onSelect}
@@ -249,6 +251,16 @@ function DeviceFrameNode({ element, isSelected, onSelect }: {
             if (newBox.width < 100 || newBox.height < 100) return oldBox;
             return newBox;
           }}
+        />
+      )}
+      {((element.perspectiveX ?? 0) !== 0 || (element.perspectiveY ?? 0) !== 0) && (
+        <Text
+          x={element.x}
+          y={element.y - 18}
+          text={`3D: ${element.perspectiveX ?? 0}°, ${element.perspectiveY ?? 0}°`}
+          fontSize={10}
+          fill="#8b5cf6"
+          opacity={0.7}
         />
       )}
     </>
