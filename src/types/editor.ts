@@ -13,7 +13,12 @@ export type AnimationType =
   | 'bounce'
   | 'rotate-in'
   | 'typewriter'
-  | 'word-reveal';
+  | 'word-reveal'
+  | 'zoom-rotate'
+  | 'zoom-blur-in'
+  | 'slide-up-zoom'
+  | 'letter-reveal'
+  | 'scale-pop';
 
 export type EasingType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'spring';
 
@@ -65,7 +70,8 @@ export interface DeviceFrameElement extends BaseElement {
   type: 'device-frame';
   deviceType: DeviceType;
   color: string;
-  screenshotSrc: string; // screenshot inside the device
+  screenshotSrc: string; // screenshot or video inside the device
+  screenshotMediaType?: 'image' | 'video'; // defaults to 'image'
   perspectiveX: number; // rotateX in degrees, range -45 to 45
   perspectiveY: number; // rotateY in degrees, range -45 to 45
 }

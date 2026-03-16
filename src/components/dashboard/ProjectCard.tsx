@@ -23,7 +23,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   return (
     <div
       onClick={() => router.push(`/editor/${project.id}`)}
-      className="group cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+      className="group cursor-pointer rounded-xl border bg-card shadow-sm transition-all hover:border-blue-200 hover:shadow-md"
     >
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
@@ -35,16 +35,16 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
           />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <Film className="h-10 w-10 text-muted-foreground/40" />
+            <Film className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
 
       {/* Info */}
       <div className="flex items-center justify-between p-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-medium">{project.name}</h3>
+          <h3 className="truncate text-sm font-semibold">{project.name}</h3>
           <p className="text-xs text-muted-foreground">
             {formatDate(project.updatedAt)}
           </p>

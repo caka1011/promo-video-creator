@@ -1,19 +1,17 @@
 'use client';
 
-import { useCallback } from 'react';
 import { Player } from '@remotion/player';
 import { PromoVideo } from '@/components/remotion/PromoVideo';
 import { useEditorStore } from '@/stores/editor-store';
 
 export function PreviewPlayer({ width, height }: { width?: number; height?: number }) {
   const project = useEditorStore((s) => s.project);
-
   const getTotalFrames = useEditorStore((s) => s.getTotalFrames);
   const totalFrames = getTotalFrames();
 
   if (!project || totalFrames === 0) {
     return (
-      <div className="flex items-center justify-center text-muted-foreground text-sm">
+      <div className="flex items-center justify-center text-muted-foreground text-sm h-full">
         No scenes to preview
       </div>
     );

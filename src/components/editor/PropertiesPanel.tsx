@@ -202,11 +202,38 @@ function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device
   const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateElement(element.id, { screenshotSrc: reader.result as string } as Partial<SceneElement>);
-    };
-    reader.readAsDataURL(file);
+
+    if (file.type.startsWith('video/')) {
+      // Validate video duration
+      const videoEl = document.createElement('video');
+      videoEl.preload = 'metadata';
+      const objectUrl = URL.createObjectURL(file);
+      videoEl.src = objectUrl;
+      videoEl.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl);
+        if (videoEl.duration > 30) {
+          alert('Video must be 30 seconds or less');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          updateElement(element.id, {
+            screenshotSrc: reader.result as string,
+            screenshotMediaType: 'video',
+          } as Partial<SceneElement>);
+        };
+        reader.readAsDataURL(file);
+      };
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        updateElement(element.id, {
+          screenshotSrc: reader.result as string,
+          screenshotMediaType: 'image',
+        } as Partial<SceneElement>);
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
   };
 
@@ -318,7 +345,7 @@ function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           onChange={handleScreenshotUpload}
           className="hidden"
         />
@@ -329,7 +356,7 @@ function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-3 w-3" />
-          {element.screenshotSrc ? 'Replace Screenshot' : 'Add Screenshot'}
+          {element.screenshotSrc ? 'Replace Media' : 'Add Image / Video'}
         </Button>
       </div>
     </div>
@@ -510,7 +537,7 @@ export function PropertiesPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-10 items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex h-10 items-center px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Properties
       </div>
       <ScrollArea className="flex-1">

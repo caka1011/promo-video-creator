@@ -5,6 +5,7 @@ import { Canvas } from './Canvas';
 import { LayerPanel } from './LayerPanel';
 import { PropertiesPanel } from './PropertiesPanel';
 import { Timeline } from './Timeline';
+import { PreviewPlayer } from './PreviewPlayer';
 import { useEditorStore } from '@/stores/editor-store';
 
 export function EditorLayout() {
@@ -15,34 +16,48 @@ export function EditorLayout() {
       <div className="flex h-screen flex-col bg-background">
         <Toolbar />
         <div className="flex flex-1 items-center justify-center bg-black">
-          <Canvas />
+          <PreviewPlayer />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-muted/30">
       <Toolbar />
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Layers */}
-        <div className="glass w-[250px] flex-shrink-0 border-r border-border">
+        <div className="w-[250px] flex-shrink-0 border-r bg-white">
           <LayerPanel />
         </div>
 
-        {/* Center - Canvas */}
+        {/* Center - Canvas + Preview + Timeline */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            <Canvas />
+          {/* Top: Canvas (editing) + Live Preview side by side */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Konva editing canvas */}
+            <div className="flex-1 overflow-hidden">
+              <Canvas />
+            </div>
+            {/* Live Remotion preview */}
+            <div className="w-[360px] flex-shrink-0 border-l bg-black flex flex-col">
+              <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">Live Preview</span>
+              </div>
+              <div className="flex-1 flex items-center justify-center p-2">
+                <PreviewPlayer />
+              </div>
+            </div>
           </div>
           {/* Bottom - Timeline */}
-          <div className="glass h-[200px] flex-shrink-0 border-t border-border">
+          <div className="h-[200px] flex-shrink-0 border-t bg-white">
             <Timeline />
           </div>
         </div>
 
         {/* Right Panel - Properties */}
-        <div className="glass w-[300px] flex-shrink-0 border-l border-border">
+        <div className="w-[300px] flex-shrink-0 border-l bg-white">
           <PropertiesPanel />
         </div>
       </div>

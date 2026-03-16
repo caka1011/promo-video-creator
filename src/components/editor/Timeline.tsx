@@ -90,7 +90,7 @@ export function Timeline() {
   return (
     <div className="flex h-full flex-col">
       {/* Controls */}
-      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
+      <div className="flex items-center gap-2 border-b px-3 py-1.5">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentFrame(0)}>
           <SkipBack className="h-3.5 w-3.5" />
         </Button>
@@ -109,12 +109,12 @@ export function Timeline() {
         {/* Scrubber bar */}
         <div
           ref={timelineRef}
-          className="relative mb-2 h-4 cursor-pointer rounded bg-muted"
+          className="relative mb-2 h-4 cursor-pointer rounded bg-slate-100"
           onClick={handleTimelineClick}
         >
           {/* Frame ticks */}
           <div
-            className="absolute top-0 h-full w-0.5 bg-primary z-10 transition-[left] duration-75"
+            className="absolute top-0 h-full w-0.5 bg-blue-600 z-10 transition-[left] duration-75"
             style={{ left: `${playheadPct}%` }}
           />
         </div>
@@ -129,13 +129,13 @@ export function Timeline() {
                 onClick={() => setActiveScene(scene.id)}
                 className={`group relative flex-shrink-0 cursor-pointer rounded-lg border p-2 transition-colors ${
                   scene.id === activeSceneId
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-card hover:border-primary/40'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-border bg-card hover:border-blue-200'
                 }`}
                 style={{ width: `${Math.max(widthPct, 15)}%`, minWidth: 120 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium truncate">{scene.name}</span>
+                  <span className={`text-xs font-medium truncate ${scene.id === activeSceneId ? 'text-blue-700' : ''}`}>{scene.name}</span>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                     {project.scenes.length > 1 && (
                       <Button
@@ -187,10 +187,10 @@ export function Timeline() {
                       key={el.id}
                       className={`h-1 flex-1 rounded-full ${
                         el.type === 'screenshot'
-                          ? 'bg-blue-500/60'
+                          ? 'bg-blue-400/60'
                           : el.type === 'text'
-                          ? 'bg-green-500/60'
-                          : 'bg-purple-500/60'
+                          ? 'bg-emerald-400/60'
+                          : 'bg-violet-400/60'
                       }`}
                     />
                   ))}
@@ -202,7 +202,7 @@ export function Timeline() {
           {/* Add scene button */}
           <button
             onClick={addScene}
-            className="flex h-[80px] w-[80px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-border transition-colors hover:border-primary/50 hover:bg-primary/5"
+            className="flex h-[80px] w-[80px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed transition-colors hover:border-blue-300 hover:bg-blue-50"
           >
             <Plus className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -210,13 +210,13 @@ export function Timeline() {
 
         {/* Audio indicator */}
         {project.audioSrc && (
-          <div className="mt-2 flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1">
-            <Music className="h-3 w-3 flex-shrink-0 text-amber-400" />
+          <div className="mt-2 flex items-center gap-2 rounded-md bg-blue-50 px-2 py-1">
+            <Music className="h-3 w-3 flex-shrink-0 text-blue-600" />
             <span className="text-[10px] text-muted-foreground truncate flex-1">
               {project.audioFileName ?? 'Background Music'}
             </span>
-            <div className="h-1 w-24 rounded-full bg-amber-400/30">
-              <div className="h-full rounded-full bg-amber-400/60" style={{ width: '100%' }} />
+            <div className="h-1 w-24 rounded-full bg-blue-200">
+              <div className="h-full rounded-full bg-blue-500" style={{ width: '100%' }} />
             </div>
           </div>
         )}

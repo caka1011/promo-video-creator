@@ -10,6 +10,7 @@ import type {
   RESOLUTION_PRESETS,
 } from '@/types/editor';
 import { LAYOUT_PRESETS } from '@/lib/layout-presets';
+import * as storage from '@/lib/storage';
 
 const DEFAULT_ANIMATION: Animation = {
   type: 'none',
@@ -147,14 +148,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   loadProjects: () => {
     if (typeof window === 'undefined') return;
-    const raw = localStorage.getItem('appreel-projects');
-    if (raw) {
-      try {
-        set({ projects: JSON.parse(raw) });
-      } catch {
-        set({ projects: [] });
-      }
-    }
+    storage.loadProjects().then((projects) => {
+      set({ projects });
+    }).catch(() => {
+      set({ projects: [] });
+    });
   },
 
   saveProject: () => {
@@ -169,9 +167,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       newProjects.push(updated);
     }
     set({ project: updated, projects: newProjects });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
-    }
+    storage.saveProject(updated).catch(() => {});
   },
 
   createProject: (name, settings) => {
@@ -187,9 +183,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { projects } = get();
     const newProjects = [...projects, project];
     set({ projects: newProjects });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
-    }
+    storage.saveProject(project).catch(() => {});
     return project.id;
   },
 
@@ -197,9 +191,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { projects } = get();
     const newProjects = projects.filter((p) => p.id !== id);
     set({ projects: newProjects });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
-    }
+    storage.deleteProject(id).catch(() => {});
   },
 
   // Scene actions

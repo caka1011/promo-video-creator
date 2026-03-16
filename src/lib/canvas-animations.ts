@@ -153,9 +153,45 @@ export function computeAnimatedProps(
 
     case 'typewriter':
     case 'word-reveal':
+    case 'letter-reveal':
       // Text animations — just fade in on canvas, full effect in Remotion
       opacity = t;
       break;
+
+    case 'zoom-rotate': {
+      const zrT = springEasing(clamp(rawT, 0, 1));
+      scaleX = interpolate(localFrame, [startFrame, endFrame], [0.1, 1]);
+      scaleY = scaleX;
+      scaleX = 0.1 + zrT * 0.9;
+      scaleY = scaleX;
+      opacity = interpolate(localFrame, [startFrame, startFrame + 4], [0, 1]);
+      break;
+    }
+
+    case 'zoom-blur-in': {
+      const zbT = springEasing(clamp(rawT, 0, 1));
+      scaleX = 0.3 + zbT * 0.7;
+      scaleY = scaleX;
+      opacity = interpolate(localFrame, [startFrame, startFrame + 3], [0, 1]);
+      break;
+    }
+
+    case 'slide-up-zoom': {
+      const suzT = springEasing(clamp(rawT, 0, 1));
+      offsetY = (1 - suzT) * 350;
+      scaleX = 0.7 + suzT * 0.3;
+      scaleY = scaleX;
+      opacity = interpolate(localFrame, [startFrame, startFrame + 4], [0, 1]);
+      break;
+    }
+
+    case 'scale-pop': {
+      const spT = springEasing(clamp(rawT, 0, 1));
+      scaleX = spT;
+      scaleY = spT;
+      opacity = interpolate(localFrame, [startFrame, startFrame + 2], [0, 1]);
+      break;
+    }
   }
 
   return { opacity, offsetX, offsetY, scaleX, scaleY, rotation };

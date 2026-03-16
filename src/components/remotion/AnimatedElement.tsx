@@ -31,6 +31,9 @@ export function useAnimationStyle(animation: Animation, sceneStartFrame: number)
   let translateY = 0;
   let scale = 1;
   let rotate = 0;
+  let rotateX = 0;
+  let rotateY = 0;
+  let blur = 0;
 
   const easing = getEasing(animation.easing);
 
@@ -155,7 +158,7 @@ export function useAnimationStyle(animation: Animation, sceneStartFrame: number)
       });
       break;
 
-    case 'bounce':
+    case 'bounce': {
       const springVal = spring({
         frame: localFrame - startFrame,
         fps,
@@ -167,6 +170,7 @@ export function useAnimationStyle(animation: Animation, sceneStartFrame: number)
         extrapolateRight: 'clamp',
       });
       break;
+    }
 
     case 'rotate-in':
       rotate = isSpring
@@ -190,12 +194,91 @@ export function useAnimationStyle(animation: Animation, sceneStartFrame: number)
         extrapolateRight: 'clamp',
       });
       break;
+
+    // ─── NEW ANIMATIONS ───
+
+    case 'zoom-rotate': {
+      // Zoom in + 3D rotation — used for dramatic hook text
+      const zrSpring = spring({
+        frame: localFrame - startFrame,
+        fps,
+        config: { damping: 12, stiffness: 150, mass: 0.8 },
+      });
+      scale = interpolate(zrSpring, [0, 1], [0.1, 1]);
+      rotateX = interpolate(zrSpring, [0, 1], [-25, 0]);
+      rotateY = interpolate(zrSpring, [0, 1], [15, 0]);
+      opacity = interpolate(localFrame, [startFrame, startFrame + 4], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      break;
+    }
+
+    case 'zoom-blur-in': {
+      // Zoom in with blur clearing — used for text interludes
+      const zbProgress = isSpring
+        ? spring({ frame: localFrame - startFrame, fps, config: { damping: 14, stiffness: 120, mass: 0.6 } })
+        : interpolate(localFrame, [startFrame, endFrame], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing,
+          });
+      scale = interpolate(zbProgress, [0, 1], [0.3, 1]);
+      blur = interpolate(zbProgress, [0, 1], [20, 0]);
+      opacity = interpolate(localFrame, [startFrame, startFrame + 3], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      break;
+    }
+
+    case 'slide-up-zoom': {
+      // Slide up + zoom in — used for device entrances
+      const suzSpring = spring({
+        frame: localFrame - startFrame,
+        fps,
+        config: { damping: 10, stiffness: 180, mass: 0.6 },
+      });
+      translateY = interpolate(suzSpring, [0, 1], [350, 0]);
+      scale = interpolate(suzSpring, [0, 1], [0.7, 1]);
+      opacity = interpolate(localFrame, [startFrame, startFrame + 4], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      break;
+    }
+
+    case 'scale-pop': {
+      // Quick scale pop with overshoot — snappier than bounce
+      const spSpring = spring({
+        frame: localFrame - startFrame,
+        fps,
+        config: { damping: 6, stiffness: 300, mass: 0.4 },
+      });
+      scale = interpolate(spSpring, [0, 1], [0, 1]);
+      opacity = interpolate(localFrame, [startFrame, startFrame + 2], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+      break;
+    }
   }
 
-  return {
+  const style: React.CSSProperties = {
     opacity,
     transform: `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotate}deg)`,
   };
+
+  if (rotateX !== 0 || rotateY !== 0) {
+    style.perspective = 1200;
+    style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotate}deg) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  }
+
+  if (blur > 0) {
+    style.filter = `blur(${blur}px)`;
+  }
+
+  return style;
 }
 
 export function AnimatedText({
@@ -206,8 +289,28 @@ export function AnimatedText({
   sceneStartFrame: number;
 }) {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const localFrame = frame - sceneStartFrame;
   const animStyle = useAnimationStyle(element.animation, sceneStartFrame);
+
+  const baseStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: element.x,
+    top: element.y,
+    width: element.width,
+    fontFamily: element.fontFamily,
+    fontSize: element.fontSize,
+    fontWeight: element.fontWeight,
+    color: element.color,
+    textAlign: element.textAlign,
+    lineHeight: element.lineHeight,
+    opacity: element.opacity,
+    transform: `rotate(${element.rotation}deg)`,
+    textShadow:
+      element.shadowBlur > 0
+        ? `${element.shadowOffsetX}px ${element.shadowOffsetY}px ${element.shadowBlur}px ${element.shadowColor}`
+        : undefined,
+  };
 
   // Special text animations
   if (element.animation.type === 'typewriter') {
@@ -221,26 +324,7 @@ export function AnimatedText({
     const displayText = element.content.slice(0, chars);
 
     return (
-      <div
-        style={{
-          position: 'absolute',
-          left: element.x,
-          top: element.y,
-          width: element.width,
-          fontFamily: element.fontFamily,
-          fontSize: element.fontSize,
-          fontWeight: element.fontWeight,
-          color: element.color,
-          textAlign: element.textAlign,
-          lineHeight: element.lineHeight,
-          opacity: element.opacity,
-          transform: `rotate(${element.rotation}deg)`,
-          textShadow:
-            element.shadowBlur > 0
-              ? `${element.shadowOffsetX}px ${element.shadowOffsetY}px ${element.shadowBlur}px ${element.shadowColor}`
-              : undefined,
-        }}
-      >
+      <div style={baseStyle}>
         {displayText}
         <span style={{ opacity: Math.round(localFrame / 15) % 2 === 0 ? 1 : 0 }}>|</span>
       </div>
@@ -255,18 +339,7 @@ export function AnimatedText({
     return (
       <div
         style={{
-          position: 'absolute',
-          left: element.x,
-          top: element.y,
-          width: element.width,
-          fontFamily: element.fontFamily,
-          fontSize: element.fontSize,
-          fontWeight: element.fontWeight,
-          color: element.color,
-          textAlign: element.textAlign,
-          lineHeight: element.lineHeight,
-          opacity: element.opacity,
-          transform: `rotate(${element.rotation}deg)`,
+          ...baseStyle,
           display: 'flex',
           flexWrap: 'wrap',
           gap: '0.25em',
@@ -280,20 +353,23 @@ export function AnimatedText({
       >
         {words.map((word, i) => {
           const wordStart = startFrame + i * framesPerWord;
-          const wordOpacity = interpolate(localFrame, [wordStart, wordStart + 8], [0, 1], {
+          const wordSpring = spring({
+            frame: localFrame - wordStart,
+            fps,
+            config: { damping: 12, stiffness: 200, mass: 0.5 },
+          });
+          const wordOpacity = interpolate(localFrame, [wordStart, wordStart + 4], [0, 1], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           });
-          const wordY = interpolate(localFrame, [wordStart, wordStart + 8], [20, 0], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
+          const wordY = interpolate(wordSpring, [0, 1], [30, 0]);
+          const wordScale = interpolate(wordSpring, [0, 1], [0.7, 1]);
           return (
             <span
               key={i}
               style={{
                 opacity: wordOpacity,
-                transform: `translateY(${wordY}px)`,
+                transform: `translateY(${wordY}px) scale(${wordScale})`,
                 display: 'inline-block',
               }}
             >
@@ -305,25 +381,62 @@ export function AnimatedText({
     );
   }
 
+  if (element.animation.type === 'letter-reveal') {
+    const chars = element.content.split('');
+    const startFrame = element.animation.delay;
+    const framesPerChar = Math.max(1, element.animation.duration / chars.length);
+
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent:
+            element.textAlign === 'center'
+              ? 'center'
+              : element.textAlign === 'right'
+              ? 'flex-end'
+              : 'flex-start',
+        }}
+      >
+        {chars.map((char, i) => {
+          const charStart = startFrame + i * framesPerChar;
+          const charSpring = spring({
+            frame: localFrame - charStart,
+            fps,
+            config: { damping: 14, stiffness: 250, mass: 0.3 },
+          });
+          const charOpacity = interpolate(localFrame, [charStart, charStart + 3], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+          const letterSpacing = interpolate(charSpring, [0, 1], [40, 0]);
+          const charY = interpolate(charSpring, [0, 1], [15, 0]);
+          return (
+            <span
+              key={i}
+              style={{
+                opacity: charOpacity,
+                transform: `translateY(${charY}px)`,
+                letterSpacing: char === ' ' ? '0.25em' : `${letterSpacing}px`,
+                display: 'inline-block',
+                minWidth: char === ' ' ? '0.3em' : undefined,
+              }}
+            >
+              {char}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   // Default: use CSS-based animations
   return (
     <div
       style={{
-        position: 'absolute',
-        left: element.x,
-        top: element.y,
-        width: element.width,
-        fontFamily: element.fontFamily,
-        fontSize: element.fontSize,
-        fontWeight: element.fontWeight,
-        color: element.color,
-        textAlign: element.textAlign,
-        lineHeight: element.lineHeight,
-        transform: `rotate(${element.rotation}deg)`,
-        textShadow:
-          element.shadowBlur > 0
-            ? `${element.shadowOffsetX}px ${element.shadowOffsetY}px ${element.shadowBlur}px ${element.shadowColor}`
-            : undefined,
+        ...baseStyle,
         ...animStyle,
       }}
     >

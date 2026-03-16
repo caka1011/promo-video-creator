@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -13,12 +13,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Monitor, Smartphone, Upload, X, Image } from 'lucide-react';
+import { Plus, Monitor, Smartphone, Upload, X, Film } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor-store';
 import { RESOLUTION_PRESETS, type Platform, type Project } from '@/types/editor';
 import { TemplateGallery } from './TemplateGallery';
-import { TEMPLATES, generateScenesFromTemplate, type Template } from '@/lib/templates';
+import { generateScenesFromTemplate, type Template } from '@/lib/templates';
 import { v4 as uuidv4 } from 'uuid';
+import { saveProject as saveProjectToDB } from '@/lib/storage';
+
+interface MediaSlot {
+  src: string;
+  mediaType: 'image' | 'video';
+}
+
+const MAX_VIDEO_DURATION = 30; // seconds
 
 export function NewProjectDialog() {
   const [open, setOpen] = useState(false);
@@ -26,49 +34,100 @@ export function NewProjectDialog() {
   const [platform, setPlatform] = useState<Platform>('app-store');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [screenCount, setScreenCount] = useState(3);
-  const [screenshots, setScreenshots] = useState<string[]>([]);
+  const [media, setMedia] = useState<MediaSlot[]>([]);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const createProject = useEditorStore((s) => s.createProject);
   const projects = useEditorStore((s) => s.projects);
   const router = useRouter();
 
+  const emptySlot: MediaSlot = { src: '', mediaType: 'image' };
+
   const handleTemplateSelect = (template: Template | null) => {
     setSelectedTemplate(template);
     if (template) {
-      // Reset screenshots array to match screen count
-      setScreenshots(new Array(screenCount).fill(''));
+      setMedia(new Array(screenCount).fill(null).map(() => ({ ...emptySlot })));
     } else {
-      setScreenshots([]);
+      setMedia([]);
     }
   };
 
   const handleScreenCountChange = (count: number) => {
     setScreenCount(count);
-    // Adjust screenshots array
-    const newScreenshots = [...screenshots];
-    while (newScreenshots.length < count) newScreenshots.push('');
-    setScreenshots(newScreenshots.slice(0, count));
+    const newMedia = [...media];
+    while (newMedia.length < count) newMedia.push({ ...emptySlot });
+    setMedia(newMedia.slice(0, count));
   };
 
-  const handleScreenshotUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const processFile = useCallback((index: number, file: File) => {
+    setVideoError(null);
+
+    if (file.type.startsWith('video/')) {
+      // Validate video duration
+      const videoEl = document.createElement('video');
+      videoEl.preload = 'metadata';
+      const objectUrl = URL.createObjectURL(file);
+      videoEl.src = objectUrl;
+      videoEl.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl);
+        if (videoEl.duration > MAX_VIDEO_DURATION) {
+          setVideoError(`Video must be ${MAX_VIDEO_DURATION}s or less (got ${Math.round(videoEl.duration)}s)`);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          setMedia((prev) => {
+            const next = [...prev];
+            while (next.length <= index) next.push({ ...emptySlot });
+            next[index] = { src: reader.result as string, mediaType: 'video' };
+            return next;
+          });
+        };
+        reader.readAsDataURL(file);
+      };
+      videoEl.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        setVideoError('Could not read video file');
+      };
+    } else if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setMedia((prev) => {
+          const next = [...prev];
+          while (next.length <= index) next.push({ ...emptySlot });
+          next[index] = { src: reader.result as string, mediaType: 'image' };
+          return next;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const handleFileUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newScreenshots = [...screenshots];
-      while (newScreenshots.length <= index) newScreenshots.push('');
-      newScreenshots[index] = reader.result as string;
-      setScreenshots(newScreenshots);
-    };
-    reader.readAsDataURL(file);
+    processFile(index, file);
     e.target.value = '';
   };
 
-  const removeScreenshot = (index: number) => {
-    const newScreenshots = [...screenshots];
-    newScreenshots[index] = '';
-    setScreenshots(newScreenshots);
+  const removeMedia = (index: number) => {
+    setMedia((prev) => {
+      const next = [...prev];
+      next[index] = { ...emptySlot };
+      return next;
+    });
   };
+
+  const handleDrop = useCallback((index: number, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverIndex(null);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) return;
+    processFile(index, file);
+  }, [processFile]);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -78,10 +137,9 @@ export function NewProjectDialog() {
         : RESOLUTION_PRESETS['app-store'];
 
     if (selectedTemplate) {
-      // Generate scenes from template with screenshots
-      const screenshotsList = screenshots.slice(0, screenCount);
-      while (screenshotsList.length < screenCount) screenshotsList.push('');
-      const scenes = generateScenesFromTemplate(selectedTemplate, screenshotsList);
+      const mediaList = media.slice(0, screenCount);
+      while (mediaList.length < screenCount) mediaList.push({ ...emptySlot });
+      const scenes = generateScenesFromTemplate(selectedTemplate, mediaList);
 
       const project: Project = {
         id: uuidv4(),
@@ -92,9 +150,7 @@ export function NewProjectDialog() {
         updatedAt: Date.now(),
       };
       const newProjects = [...projects, project];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('appreel-projects', JSON.stringify(newProjects));
-      }
+      saveProjectToDB(project).catch(() => {});
       useEditorStore.setState({ projects: newProjects });
       resetAndClose();
       router.push(`/editor/${project.id}`);
@@ -110,7 +166,8 @@ export function NewProjectDialog() {
     setName('');
     setSelectedTemplate(null);
     setScreenCount(3);
-    setScreenshots([]);
+    setMedia([]);
+    setVideoError(null);
   };
 
   const platforms: { value: Platform; label: string; icon: React.ReactNode }[] = [
@@ -121,15 +178,15 @@ export function NewProjectDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetAndClose(); else setOpen(true); }}>
-      <DialogTrigger render={<Button className="gap-2 bg-primary hover:bg-primary/90" />}>
+      <DialogTrigger render={<Button className="gap-2 bg-blue-600 text-white hover:bg-blue-700" />}>
         <Plus className="h-4 w-4" />
         New Project
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
           <div className="space-y-4 pt-2 pb-4">
             <div className="space-y-2">
               <Label htmlFor="project-name">Project Name</Label>
@@ -152,8 +209,8 @@ export function NewProjectDialog() {
                     onClick={() => setPlatform(p.value)}
                     className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-sm transition-colors ${
                       platform === p.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/50'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-border hover:border-blue-300'
                     }`}
                   >
                     {p.icon}
@@ -184,8 +241,8 @@ export function NewProjectDialog() {
                       onClick={() => handleScreenCountChange(count)}
                       className={`flex-1 rounded-lg border p-2 text-center text-sm font-medium transition-colors ${
                         screenCount === count
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-border hover:border-blue-300'
                       }`}
                     >
                       {count}
@@ -202,51 +259,79 @@ export function NewProjectDialog() {
               </div>
             )}
 
-            {/* Screenshot upload slots — only when template is selected */}
+            {/* Media upload slots — only when template is selected */}
             {selectedTemplate && (
               <div className="space-y-2">
-                <Label>Upload Screenshots <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Label>Upload Screenshots or Videos <span className="text-muted-foreground font-normal">(optional, max {MAX_VIDEO_DURATION}s for video)</span></Label>
+                {videoError && (
+                  <p className="text-xs text-destructive">{videoError}</p>
+                )}
                 <div className="grid grid-cols-5 gap-2">
                   {Array.from({ length: screenCount }).map((_, i) => (
-                    <div key={i} className="relative">
+                    <div
+                      key={i}
+                      className="relative"
+                      onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                      onDragEnter={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                      onDragLeave={() => setDragOverIndex(null)}
+                      onDrop={(e) => handleDrop(i, e)}
+                    >
                       <input
                         ref={(el) => { fileInputRefs.current[i] = el; }}
                         type="file"
-                        accept="image/*"
-                        onChange={(e) => handleScreenshotUpload(i, e)}
+                        accept="image/*,video/*"
+                        onChange={(e) => handleFileUpload(i, e)}
                         className="hidden"
                       />
-                      {screenshots[i] ? (
-                        <div className="relative group">
-                          <img
-                            src={screenshots[i]}
-                            alt={`Screen ${i + 1}`}
-                            className="w-full aspect-[9/19.5] rounded-md object-cover border border-border"
-                          />
+                      {media[i]?.src ? (
+                        <div className={`relative group rounded-md ${dragOverIndex === i ? 'ring-2 ring-blue-500' : ''}`}>
+                          {media[i].mediaType === 'video' ? (
+                            <video
+                              src={media[i].src}
+                              className="w-full aspect-[9/19.5] rounded-md object-cover border border-border"
+                              muted
+                              loop
+                              autoPlay
+                              playsInline
+                            />
+                          ) : (
+                            <img
+                              src={media[i].src}
+                              alt={`Screen ${i + 1}`}
+                              className="w-full aspect-[9/19.5] rounded-md object-cover border border-border"
+                            />
+                          )}
                           <button
-                            onClick={() => removeScreenshot(i)}
+                            onClick={() => removeMedia(i)}
                             className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X className="h-3 w-3" />
                           </button>
-                          <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded">
+                          <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 rounded flex items-center gap-0.5">
+                            {media[i].mediaType === 'video' && <Film className="h-2.5 w-2.5" />}
                             {i + 1}
                           </span>
                         </div>
                       ) : (
                         <button
                           onClick={() => fileInputRefs.current[i]?.click()}
-                          className="w-full aspect-[9/19.5] rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                          className={`w-full aspect-[9/19.5] rounded-md border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-colors ${
+                            dragOverIndex === i
+                              ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                              : 'border-border hover:border-blue-300 hover:bg-blue-50'
+                          }`}
                         >
-                          <Image className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-[9px] text-muted-foreground">{i + 1}</span>
+                          <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground">
+                            {dragOverIndex === i ? 'Drop' : i + 1}
+                          </span>
                         </button>
                       )}
                     </div>
                   ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  You can also upload screenshots later in the editor
+                  Drag &amp; drop or click to upload images or videos (max {MAX_VIDEO_DURATION}s).
                 </p>
               </div>
             )}
@@ -255,11 +340,13 @@ export function NewProjectDialog() {
               Resolution: 1920 x 1080 ({platform === 'app-store' ? 'App Store' : platform === 'google-play' ? 'Google Play' : 'Universal'})
             </div>
 
-            <Button onClick={handleCreate} className="w-full" disabled={!name.trim()}>
-              Create Project
-            </Button>
+            <div className="flex justify-center pt-2">
+              <Button onClick={handleCreate} className="w-60" disabled={!name.trim()}>
+                Create Project
+              </Button>
+            </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

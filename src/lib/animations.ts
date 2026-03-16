@@ -21,6 +21,11 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
   { type: 'rotate-in', label: 'Rotate In', description: 'Spin into view', category: 'entrance' },
   { type: 'typewriter', label: 'Typewriter', description: 'Type text character by character', category: 'text' },
   { type: 'word-reveal', label: 'Word Reveal', description: 'Reveal text word by word', category: 'text' },
+  { type: 'zoom-rotate', label: 'Zoom + Rotate 3D', description: 'Zoom in with 3D rotation', category: 'entrance' },
+  { type: 'zoom-blur-in', label: 'Zoom + Blur', description: 'Zoom in with blur clearing', category: 'entrance' },
+  { type: 'slide-up-zoom', label: 'Slide Up + Zoom', description: 'Slide up while zooming in', category: 'entrance' },
+  { type: 'letter-reveal', label: 'Letter Reveal', description: 'Characters appear with spacing effect', category: 'text' },
+  { type: 'scale-pop', label: 'Scale Pop', description: 'Quick scale pop with overshoot', category: 'entrance' },
 ];
 
 export const EASING_OPTIONS = [

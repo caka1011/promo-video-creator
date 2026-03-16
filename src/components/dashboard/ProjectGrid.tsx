@@ -18,8 +18,8 @@ export function ProjectGrid() {
   if (projects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="mb-4 rounded-full bg-muted p-6">
-          <Film className="h-10 w-10 text-muted-foreground" />
+        <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+          <Film className="h-8 w-8" />
         </div>
         <h2 className="mb-2 text-xl font-semibold">No projects yet</h2>
         <p className="mb-6 max-w-sm text-sm text-muted-foreground">

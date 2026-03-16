@@ -20,6 +20,43 @@ function useImage(src: string): HTMLImageElement | null {
   return image;
 }
 
+function useVideo(src: string, layerRef?: React.RefObject<Konva.Layer | null>): HTMLVideoElement | null {
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
+  const animRef = useRef<number>(0);
+  useEffect(() => {
+    if (!src) { setVideo(null); return; }
+    const vid = document.createElement('video');
+    vid.crossOrigin = 'anonymous';
+    vid.muted = true;
+    vid.loop = true;
+    vid.playsInline = true;
+    vid.src = src;
+    vid.onloadeddata = () => {
+      setVideo(vid);
+      vid.play().catch(() => {});
+    };
+    return () => {
+      vid.pause();
+      vid.src = '';
+    };
+  }, [src]);
+
+  // Continuously redraw the layer so the video frame updates on canvas
+  useEffect(() => {
+    if (!video) return;
+    const tick = () => {
+      layerRef?.current?.batchDraw();
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [video, layerRef]);
+
+  return video;
+}
+
 function useAnimatedElement(element: SceneElement, isPlaying: boolean, localFrame: number) {
   return useMemo(() => {
     if (!isPlaying) {
@@ -193,17 +230,21 @@ function TextNode({ element, isSelected, onSelect, isPlaying, localFrame }: {
   );
 }
 
-function DeviceFrameNode({ element, isSelected, onSelect, isPlaying, localFrame }: {
+function DeviceFrameNode({ element, isSelected, onSelect, isPlaying, localFrame, layerRef }: {
   element: SceneElement & { type: 'device-frame' };
   isSelected: boolean;
   onSelect: () => void;
   isPlaying: boolean;
   localFrame: number;
+  layerRef?: React.RefObject<Konva.Layer | null>;
 }) {
   const shapeRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const updateElement = useEditorStore((s) => s.updateElement);
-  const screenshotImage = useImage(element.screenshotSrc);
+  const isVideo = element.screenshotMediaType === 'video';
+  const screenshotImage = useImage(isVideo ? '' : element.screenshotSrc);
+  const videoElement = useVideo(isVideo ? element.screenshotSrc : '', layerRef);
+  const mediaSource = isVideo ? videoElement : screenshotImage;
   const anim = useAnimatedElement(element, isPlaying, localFrame);
 
   useEffect(() => {
@@ -233,10 +274,10 @@ function DeviceFrameNode({ element, isSelected, onSelect, isPlaying, localFrame 
         height={element.height}
         rotation={element.rotation + anim.rotation}
         opacity={anim.opacity}
-        scaleX={anim.scaleX * (isPlaying ? 1 : 1)}
-        scaleY={anim.scaleY * (isPlaying ? 1 : 1)}
-        skewX={((element.perspectiveY ?? 0)) * 0.3}
-        skewY={((element.perspectiveX ?? 0)) * -0.15}
+        scaleX={anim.scaleX}
+        scaleY={anim.scaleY}
+        skewX={(element.perspectiveY ?? 0) * Math.PI / 180 * 0.3}
+        skewY={(element.perspectiveX ?? 0) * Math.PI / 180 * -0.15}
         draggable={!element.locked && !isPlaying}
         onClick={onSelect}
         onTap={onSelect}
@@ -323,10 +364,10 @@ function DeviceFrameNode({ element, isSelected, onSelect, isPlaying, localFrame 
           cornerRadius={frameInfo.screenRadius * scaleFactorX}
         />
 
-        {/* Screenshot inside device */}
-        {screenshotImage && (
+        {/* Screenshot or video inside device */}
+        {mediaSource && (
           <KonvaImage
-            image={screenshotImage}
+            image={mediaSource}
             x={frameInfo.screenX * scaleFactorX}
             y={frameInfo.screenY * scaleFactorY}
             width={frameInfo.screenWidth * scaleFactorX}
@@ -431,26 +472,27 @@ function DeviceFrameNode({ element, isSelected, onSelect, isPlaying, localFrame 
           }}
         />
       )}
-      {((element.perspectiveX ?? 0) !== 0 || (element.perspectiveY ?? 0) !== 0) && (
+      {((element.perspectiveX ?? 0) !== 0 || (element.perspectiveY ?? 0) !== 0) && !isPlaying && (
         <Text
           x={element.x}
           y={element.y - 18}
-          text={`3D: ${element.perspectiveX ?? 0}\u00B0, ${element.perspectiveY ?? 0}\u00B0`}
+          text={`\u25C8 3D perspective applied in render`}
           fontSize={10}
           fill="#8b5cf6"
-          opacity={0.7}
+          opacity={0.6}
         />
       )}
     </>
   );
 }
 
-function ElementRenderer({ element, isSelected, onSelect, isPlaying, localFrame }: {
+function ElementRenderer({ element, isSelected, onSelect, isPlaying, localFrame, layerRef }: {
   element: SceneElement;
   isSelected: boolean;
   onSelect: () => void;
   isPlaying: boolean;
   localFrame: number;
+  layerRef?: React.RefObject<Konva.Layer | null>;
 }) {
   if (!element.visible) return null;
 
@@ -460,12 +502,13 @@ function ElementRenderer({ element, isSelected, onSelect, isPlaying, localFrame 
     case 'text':
       return <TextNode element={element} isSelected={isSelected} onSelect={onSelect} isPlaying={isPlaying} localFrame={localFrame} />;
     case 'device-frame':
-      return <DeviceFrameNode element={element} isSelected={isSelected} onSelect={onSelect} isPlaying={isPlaying} localFrame={localFrame} />;
+      return <DeviceFrameNode element={element} isSelected={isSelected} onSelect={onSelect} isPlaying={isPlaying} localFrame={localFrame} layerRef={layerRef} />;
   }
 }
 
 export function Canvas() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<Konva.Layer>(null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
 
   const project = useEditorStore((s) => s.project);
@@ -532,7 +575,7 @@ export function Canvas() {
     <div
       ref={containerRef}
       className="h-full w-full overflow-hidden"
-      style={{ background: '#0a0a0f' }}
+      style={{ background: '#1e293b' }}
     >
       <Stage
         width={stageSize.width}
@@ -541,18 +584,18 @@ export function Canvas() {
         onClick={handleStageClick}
         onTap={handleStageClick}
       >
-        <Layer x={offsetX} y={offsetY} scaleX={zoom} scaleY={zoom}>
+        <Layer ref={layerRef} x={offsetX} y={offsetY} scaleX={zoom} scaleY={zoom}>
           {/* Checkerboard background */}
           <Rect
             x={-2}
             y={-2}
             width={canvasWidth + 4}
             height={canvasHeight + 4}
-            fill="#1a1a2e"
+            fill="#0f172a"
             cornerRadius={4}
-            shadowColor="rgba(0,0,0,0.5)"
-            shadowBlur={20}
-            shadowOffsetY={4}
+            shadowColor="rgba(0,0,0,0.4)"
+            shadowBlur={24}
+            shadowOffsetY={6}
           />
           {/* Scene background */}
           <Rect
@@ -572,6 +615,7 @@ export function Canvas() {
               onSelect={() => selectElement(element.id)}
               isPlaying={isPlaying}
               localFrame={localFrame}
+              layerRef={layerRef}
             />
           ))}
         </Layer>

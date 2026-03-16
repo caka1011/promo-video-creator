@@ -9,11 +9,11 @@ import type { SceneElement } from '@/types/editor';
 function getElementIcon(type: SceneElement['type']) {
   switch (type) {
     case 'screenshot':
-      return <Image className="h-3.5 w-3.5 text-blue-400" />;
+      return <Image className="h-3.5 w-3.5 text-blue-600" />;
     case 'text':
-      return <Type className="h-3.5 w-3.5 text-green-400" />;
+      return <Type className="h-3.5 w-3.5 text-emerald-600" />;
     case 'device-frame':
-      return <Smartphone className="h-3.5 w-3.5 text-purple-400" />;
+      return <Smartphone className="h-3.5 w-3.5 text-violet-600" />;
   }
 }
 
@@ -31,7 +31,7 @@ export function LayerPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-10 items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex h-10 items-center px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         Layers
       </div>
       <ScrollArea className="flex-1">
@@ -48,8 +48,8 @@ export function LayerPanel() {
               onClick={() => selectElement(element.id)}
               className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm cursor-pointer transition-colors ${
                 selectedElementId === element.id
-                  ? 'bg-primary/15 text-foreground'
-                  : 'hover:bg-muted/50 text-muted-foreground'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'hover:bg-muted text-foreground'
               }`}
             >
               {getElementIcon(element.type)}

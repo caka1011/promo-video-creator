@@ -18,6 +18,7 @@ import {
   Save,
   LayoutGrid,
   Music,
+  Film,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -39,16 +40,24 @@ function ToolbarButton({
   onClick,
   children,
   variant = 'ghost',
+  active = false,
 }: {
   tooltip: string;
   onClick: () => void;
   children: React.ReactNode;
   variant?: 'ghost' | 'default';
+  active?: boolean;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        render={<Button variant={variant} size="icon" className="h-8 w-8" />}
+        render={
+          <Button
+            variant={active ? 'default' : variant}
+            size="icon"
+            className={`h-8 w-8 ${active ? 'bg-blue-600 text-white hover:bg-blue-700' : ''}`}
+          />
+        }
         onClick={onClick}
       >
         {children}
@@ -184,14 +193,19 @@ export function Toolbar() {
   };
 
   return (
-    <div className="glass flex h-12 items-center gap-1 border-b border-border px-2">
+    <div className="flex h-12 shrink-0 items-center gap-1 border-b bg-white px-2">
       <ToolbarButton tooltip="Back to Dashboard" onClick={() => router.push('/')}>
         <ArrowLeft className="h-4 w-4" />
       </ToolbarButton>
 
-      <span className="mx-2 text-sm font-medium truncate max-w-[150px]">
-        {project?.name}
-      </span>
+      <div className="flex items-center gap-2 mx-2">
+        <div className="flex size-6 items-center justify-center rounded-md bg-blue-600">
+          <Film className="h-3 w-3 text-white" />
+        </div>
+        <span className="text-sm font-semibold truncate max-w-[150px]">
+          {project?.name}
+        </span>
+      </div>
 
       <Separator orientation="vertical" className="h-6" />
 
@@ -258,7 +272,7 @@ export function Toolbar() {
             audioInputRef.current?.click();
           }
         }}
-        variant={project?.audioSrc ? 'default' : 'ghost'}
+        active={!!project?.audioSrc}
       >
         <Music className="h-4 w-4" />
       </ToolbarButton>
@@ -278,7 +292,7 @@ export function Toolbar() {
         <ZoomOut className="h-4 w-4" />
       </ToolbarButton>
 
-      <span className="min-w-[3rem] text-center text-xs text-muted-foreground">
+      <span className="min-w-[3rem] text-center text-xs text-muted-foreground tabular-nums">
         {Math.round(zoom * 100)}%
       </span>
 
@@ -300,7 +314,7 @@ export function Toolbar() {
       <ToolbarButton
         tooltip="Preview"
         onClick={() => setPreviewMode(!previewMode)}
-        variant={previewMode ? 'default' : 'ghost'}
+        active={previewMode}
       >
         <Eye className="h-4 w-4" />
       </ToolbarButton>

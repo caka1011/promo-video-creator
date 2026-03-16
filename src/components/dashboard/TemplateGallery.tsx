@@ -16,8 +16,8 @@ export function TemplateGallery({ selectedId, onSelect }: TemplateGalleryProps) 
         onClick={() => onSelect(null)}
         className={`w-full rounded-lg border p-3 text-left transition-colors ${
           selectedId === null
-            ? 'border-primary bg-primary/10'
-            : 'border-border hover:border-primary/40'
+            ? 'border-blue-600 bg-blue-50'
+            : 'border-border hover:border-blue-200'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -38,8 +38,8 @@ export function TemplateGallery({ selectedId, onSelect }: TemplateGalleryProps) 
           onClick={() => onSelect(template)}
           className={`w-full rounded-lg border p-3 text-left transition-colors ${
             selectedId === template.id
-              ? 'border-primary bg-primary/10'
-              : 'border-border hover:border-primary/40'
+              ? 'border-blue-600 bg-blue-50'
+              : 'border-border hover:border-blue-200'
           }`}
         >
           <div className="flex items-center gap-3">

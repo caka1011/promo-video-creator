@@ -148,7 +148,7 @@ export function ExportDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setStatus('idle'); }}>
-      <DialogTrigger render={<Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90" />}>
+      <DialogTrigger render={<Button size="sm" className="gap-1.5 bg-blue-600 text-white hover:bg-blue-700" />}>
         <Download className="h-3.5 w-3.5" />
         Export
       </DialogTrigger>
@@ -226,13 +226,13 @@ export function ExportDialog() {
 
           {status === 'recording' && (
             <div className="space-y-3 text-center">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
               <p className="text-sm text-muted-foreground">
                 Recording video... {Math.round(progress * 100)}%
               </p>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full bg-primary transition-[width] duration-200"
+                  className="h-full bg-blue-600 transition-[width] duration-200"
                   style={{ width: `${progress * 100}%` }}
                 />
               </div>

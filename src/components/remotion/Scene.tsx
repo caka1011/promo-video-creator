@@ -1,6 +1,6 @@
 'use client';
 
-import { AbsoluteFill, Img } from 'remotion';
+import { AbsoluteFill, Img, OffthreadVideo } from 'remotion';
 import { useAnimationStyle, AnimatedText } from './AnimatedElement';
 import { DEVICE_FRAMES } from '@/lib/device-frames';
 import type { Scene as SceneType, SceneElement, DeviceType } from '@/types/editor';
@@ -124,10 +124,18 @@ function DeviceFrameRenderer({
             }}
           >
             {element.screenshotSrc && (
-              <Img
-                src={element.screenshotSrc}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              element.screenshotMediaType === 'video' ? (
+                <OffthreadVideo
+                  src={element.screenshotSrc}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  muted
+                />
+              ) : (
+                <Img
+                  src={element.screenshotSrc}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              )
             )}
             {/* Screen reflection */}
             <div
