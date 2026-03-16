@@ -1,9 +1,15 @@
 'use client';
 
+import React, { Suspense } from 'react';
 import { AbsoluteFill, Img, OffthreadVideo } from 'remotion';
 import { useAnimationStyle, AnimatedText } from './AnimatedElement';
 import { DEVICE_FRAMES } from '@/lib/device-frames';
-import type { Scene as SceneType, SceneElement, DeviceType } from '@/types/editor';
+import type { Scene as SceneType, SceneElement, DeviceType, DeviceFrameElement } from '@/types/editor';
+
+// Lazy-load Three.js layer to avoid SSR issues
+const ThreeDeviceLayer = React.lazy(() =>
+  import('./three/ThreeDeviceLayer').then((m) => ({ default: m.ThreeDeviceLayer }))
+);
 
 function ScreenshotRenderer({
   element,
@@ -280,14 +286,52 @@ function ElementRenderer({
 export function SceneComposition({
   scene,
   sceneStartFrame,
+  use3D = true,
 }: {
   scene: SceneType;
   sceneStartFrame: number;
+  use3D?: boolean;
 }) {
+  // Separate device-frame elements from other elements
+  const deviceElements: DeviceFrameElement[] = [];
+  const otherElements: SceneElement[] = [];
+
+  for (const element of scene.elements) {
+    if (element.type === 'device-frame' && element.visible) {
+      deviceElements.push(element);
+    } else {
+      otherElements.push(element);
+    }
+  }
+
+  const hasDevices = deviceElements.length > 0 && use3D;
+
   return (
     <AbsoluteFill style={{ backgroundColor: scene.background }}>
-      {scene.elements.map((element) => (
+      {/* Three.js 3D layer for device frames */}
+      {hasDevices && (
+        <Suspense fallback={null}>
+          <ThreeDeviceLayer
+            devices={deviceElements.map((element) => ({
+              element,
+              sceneStartFrame,
+            }))}
+          />
+        </Suspense>
+      )}
+
+      {/* HTML layer for text and screenshots */}
+      {otherElements.map((element) => (
         <ElementRenderer
+          key={element.id}
+          element={element}
+          sceneStartFrame={sceneStartFrame}
+        />
+      ))}
+
+      {/* Fallback: render device frames with CSS if 3D disabled */}
+      {!use3D && deviceElements.map((element) => (
+        <DeviceFrameRenderer
           key={element.id}
           element={element}
           sceneStartFrame={sceneStartFrame}
