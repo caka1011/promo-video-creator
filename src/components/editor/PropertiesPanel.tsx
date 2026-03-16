@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor-store';
 import { ANIMATION_PRESETS, EASING_OPTIONS } from '@/lib/animations';
+import { DEVICE_FRAMES } from '@/lib/device-frames';
 import type { AnimationType, EasingType, DeviceType, SceneElement } from '@/types/editor';
 
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -217,9 +218,20 @@ function DeviceFrameProps({ element }: { element: SceneElement & { type: 'device
       <PropertyRow label="Device">
         <Select
           value={element.deviceType}
-          onValueChange={(v) =>
-            v && updateElement(element.id, { deviceType: v as DeviceType } as Partial<SceneElement>)
-          }
+          onValueChange={(v) => {
+            if (!v) return;
+            const deviceType = v as DeviceType;
+            const frame = DEVICE_FRAMES[deviceType as Exclude<DeviceType, 'none'>];
+            if (frame) {
+              updateElement(element.id, {
+                deviceType,
+                width: frame.width,
+                height: frame.height,
+              } as Partial<SceneElement>);
+            } else {
+              updateElement(element.id, { deviceType } as Partial<SceneElement>);
+            }
+          }}
         >
           <SelectTrigger className="h-7 text-xs">
             <SelectValue />

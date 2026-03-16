@@ -26,7 +26,7 @@ export function TemplateGallery({ selectedId, onSelect }: TemplateGalleryProps) 
           </div>
           <div>
             <p className="text-sm font-medium">Start from scratch</p>
-            <p className="text-xs text-muted-foreground">Empty canvas</p>
+            <p className="text-xs text-muted-foreground">Empty canvas, full control</p>
           </div>
         </div>
       </button>
@@ -44,14 +44,14 @@ export function TemplateGallery({ selectedId, onSelect }: TemplateGalleryProps) 
         >
           <div className="flex items-center gap-3">
             <div
-              className="h-12 w-20 rounded"
+              className="h-12 w-20 rounded flex-shrink-0"
               style={{ background: template.preview }}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{template.name}</p>
                 <Badge variant="secondary" className="text-[10px]">
-                  {template.scenes.length} scene{template.scenes.length > 1 ? 's' : ''}
+                  {template.category}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">{template.description}</p>
