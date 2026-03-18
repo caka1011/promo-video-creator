@@ -12,13 +12,9 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Play,
-  Pause,
-  Eye,
   Save,
   LayoutGrid,
-  Music,
-  Film,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -33,13 +29,12 @@ import { useEditorStore } from '@/stores/editor-store';
 import { v4 as uuidv4 } from 'uuid';
 import type { ScreenshotElement, TextElement, DeviceFrameElement } from '@/types/editor';
 import { LAYOUT_PRESETS } from '@/lib/layout-presets';
-import { ExportDialog } from './ExportDialog';
-import { ToolbarButton } from './toolbar-button';
+import { ToolbarButton } from '@/components/editor/toolbar-button';
+import { ScreenshotExportDialog } from './ScreenshotExportDialog';
 
-export function Toolbar() {
+export function ScreenshotToolbar() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const project = useEditorStore((s) => s.project);
   const zoom = useEditorStore((s) => s.zoom);
@@ -48,14 +43,8 @@ export function Toolbar() {
   const addElement = useEditorStore((s) => s.addElement);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
-  const isPlaying = useEditorStore((s) => s.isPlaying);
-  const togglePlay = useEditorStore((s) => s.togglePlay);
-  const previewMode = useEditorStore((s) => s.previewMode);
-  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   const saveProject = useEditorStore((s) => s.saveProject);
   const applyLayoutPreset = useEditorStore((s) => s.applyLayoutPreset);
-  const setAudio = useEditorStore((s) => s.setAudio);
-  const removeAudio = useEditorStore((s) => s.removeAudio);
 
   const handleAddScreenshot = () => {
     fileInputRef.current?.click();
@@ -146,21 +135,6 @@ export function Toolbar() {
     addElement(element);
   };
 
-  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Audio file must be under 3MB due to browser storage limits.');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAudio(reader.result as string, file.name);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 border-b bg-white px-2">
       <ToolbarButton tooltip="Back to Dashboard" onClick={() => router.push('/')}>
@@ -168,8 +142,8 @@ export function Toolbar() {
       </ToolbarButton>
 
       <div className="flex items-center gap-2 mx-2">
-        <div className="flex size-6 items-center justify-center rounded-md bg-blue-600">
-          <Film className="h-3 w-3 text-white" />
+        <div className="flex size-6 items-center justify-center rounded-md bg-purple-600">
+          <Smartphone className="h-3 w-3 text-white" />
         </div>
         <span className="text-sm font-semibold truncate max-w-[150px]">
           {project?.name}
@@ -183,14 +157,6 @@ export function Toolbar() {
         type="file"
         accept="image/*"
         onChange={handleFileChange}
-        className="hidden"
-      />
-
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/mp3,audio/wav,audio/ogg,audio/mpeg"
-        onChange={handleAudioUpload}
         className="hidden"
       />
 
@@ -232,20 +198,6 @@ export function Toolbar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ToolbarButton
-        tooltip={project?.audioSrc ? `Audio: ${project.audioFileName}` : 'Add Background Music'}
-        onClick={() => {
-          if (project?.audioSrc) {
-            if (confirm('Remove audio?')) removeAudio();
-          } else {
-            audioInputRef.current?.click();
-          }
-        }}
-        active={!!project?.audioSrc}
-      >
-        <Music className="h-4 w-4" />
-      </ToolbarButton>
-
       <Separator orientation="vertical" className="h-6" />
 
       <ToolbarButton tooltip="Undo" onClick={undo}>
@@ -274,24 +226,11 @@ export function Toolbar() {
 
       <div className="flex-1" />
 
-      <ToolbarButton tooltip={isPlaying ? 'Pause' : 'Play'} onClick={togglePlay}>
-        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-      </ToolbarButton>
-
-      <Separator orientation="vertical" className="h-6" />
-
-      <ToolbarButton
-        tooltip="Preview"
-        onClick={() => setPreviewMode(!previewMode)}
-        active={previewMode}
-      >
-        <Eye className="h-4 w-4" />
-      </ToolbarButton>
       <ToolbarButton tooltip="Save" onClick={saveProject}>
         <Save className="h-4 w-4" />
       </ToolbarButton>
 
-      <ExportDialog />
+      <ScreenshotExportDialog />
     </div>
   );
 }

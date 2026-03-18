@@ -114,10 +114,20 @@ export interface ProjectSettings {
   fps: 30 | 60;
 }
 
+export type ProjectType = 'video' | 'app-screens';
+
+export type ScreenOrientation = 'portrait' | 'landscape';
+
+export interface ScreenshotSettings {
+  outputSizes: string[]; // IDs from output-sizes.ts
+  orientation: ScreenOrientation;
+}
+
 export interface Project {
   id: string;
+  type: ProjectType;
   name: string;
-  scenes: Scene[];
+  scenes: Scene[]; // used as "slides" for app-screens projects
   settings: ProjectSettings;
   createdAt: number;
   updatedAt: number;
@@ -125,6 +135,7 @@ export interface Project {
   audioSrc?: string; // base64 data URL of audio file
   audioVolume?: number; // 0 to 1, default 1
   audioFileName?: string; // display name for the UI
+  screenshotSettings?: ScreenshotSettings;
 }
 
 export type ExportStatus = 'idle' | 'recording' | 'processing' | 'done' | 'error';

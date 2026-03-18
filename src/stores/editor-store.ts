@@ -7,9 +7,11 @@ import type {
   DeviceFrameElement,
   Animation,
   ProjectSettings,
+  ScreenshotSettings,
   RESOLUTION_PRESETS,
 } from '@/types/editor';
 import { LAYOUT_PRESETS } from '@/lib/layout-presets';
+import { getOutputSizeById } from '@/lib/output-sizes';
 import * as storage from '@/lib/storage';
 
 const DEFAULT_ANIMATION: Animation = {
@@ -65,6 +67,7 @@ interface EditorState {
   loadProjects: () => void;
   saveProject: () => void;
   createProject: (name: string, settings: ProjectSettings) => string;
+  createScreenshotProject: (name: string, screenshotSettings: ScreenshotSettings) => string;
   deleteProject: (id: string) => void;
 
   // Scene actions
@@ -174,12 +177,50 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const defaultScene = createDefaultScene();
     const project: Project = {
       id: uuidv4(),
+      type: 'video',
       name,
       scenes: [defaultScene],
       settings,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
+    const { projects } = get();
+    const newProjects = [...projects, project];
+    set({ projects: newProjects });
+    storage.saveProject(project).catch(() => {});
+    return project.id;
+  },
+
+  createScreenshotProject: (name, screenshotSettings) => {
+    const firstSize = getOutputSizeById(screenshotSettings.outputSizes[0]);
+    const resolution = firstSize
+      ? { name: firstSize.name, width: firstSize.width, height: firstSize.height }
+      : { name: 'iPhone 6.7"', width: 1290, height: 2796 };
+
+    const defaultSlide: Scene = {
+      id: uuidv4(),
+      name: 'Screenshot 1',
+      elements: [],
+      duration: 90,
+      background: '#0f0f1a',
+      transition: 'none',
+    };
+
+    const project: Project = {
+      id: uuidv4(),
+      type: 'app-screens',
+      name,
+      scenes: [defaultSlide],
+      settings: {
+        platform: 'both',
+        resolution,
+        fps: 30,
+      },
+      screenshotSettings,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
     const { projects } = get();
     const newProjects = [...projects, project];
     set({ projects: newProjects });

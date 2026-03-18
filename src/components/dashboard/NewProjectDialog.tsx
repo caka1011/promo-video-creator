@@ -143,6 +143,7 @@ export function NewProjectDialog() {
 
       const project: Project = {
         id: uuidv4(),
+        type: 'video',
         name: name.trim(),
         scenes,
         settings: { platform, resolution, fps: 30 },

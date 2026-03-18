@@ -27,9 +27,9 @@ export async function loadProjects(): Promise<Project[]> {
       const store = tx.objectStore(STORE_NAME);
       const request = store.getAll();
       request.onsuccess = () => {
-        const projects = (request.result as Project[]).sort(
-          (a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0),
-        );
+        const projects = (request.result as Project[])
+          .map((p) => (p.type ? p : { ...p, type: 'video' as const }))
+          .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
         resolve(projects);
       };
       request.onerror = () => reject(request.error);

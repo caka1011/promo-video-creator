@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Trash2, Film } from 'lucide-react';
+import { MoreVertical, Trash2, Film, Smartphone } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +20,13 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const router = useRouter();
 
+  const isScreenshot = project.type === 'app-screens';
+  const href = isScreenshot ? `/screens/${project.id}` : `/editor/${project.id}`;
+  const Icon = isScreenshot ? Smartphone : Film;
+
   return (
     <div
-      onClick={() => router.push(`/editor/${project.id}`)}
+      onClick={() => router.push(href)}
       className="group cursor-pointer rounded-xl border bg-card shadow-sm transition-all hover:border-blue-200 hover:shadow-md"
     >
       {/* Thumbnail */}
@@ -35,10 +39,15 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
           />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <Film className="h-10 w-10 text-muted-foreground/30" />
+            <Icon className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+        {isScreenshot && (
+          <span className="absolute top-2 left-2 bg-purple-600 text-white text-[9px] font-medium px-1.5 py-0.5 rounded">
+            Screens
+          </span>
+        )}
       </div>
 
       {/* Info */}
